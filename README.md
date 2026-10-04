@@ -4,6 +4,8 @@
 
 A tamper-evident log, policy guard and kill switch for coding agents. Works today as a Claude Code `PreToolUse` hook. Python 3.8+ on macOS and Linux, no dependencies.
 
+**Using it, or want to?** [Get updates and tell me what it should catch](https://docs.google.com/forms/d/e/1FAIpQLSep5V2V3w56EfKKrhICh3hnQUZYMSOwD5GVqfGMy59JSxKZUg/viewform). It takes a minute.
+
 ## What it does
 - **Records** every tool call the agent makes (command, file path, URL) to `~/.tripwire/log.jsonl`. Each record includes the hash of the previous one, so editing or deleting an entry in the middle is detectable.
 - **Blocks** calls that break your policy: credential files (`~/.aws`, `~/.ssh`, `.env`), dangerous commands (`curl | sh`, `rm -rf /`, `sudo`, force-push), and network hosts not on your allowlist. File rules follow symlinks and ignore case, so a link to `~/.aws/credentials` or a path like `~/.AWS/credentials` is still blocked.

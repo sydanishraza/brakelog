@@ -1,4 +1,4 @@
-# Tripwire technical spec (v0.1)
+# Brakelog technical spec (v0.1)
 
 ## Goal
 Give developers who run coding agents unattended three things: a trustworthy record of what the agent did, automatic blocking of out-of-scope actions, and a stop button that works mid-run.
@@ -24,7 +24,7 @@ CLI commands read the same log and flag files. No daemon, no network.
 
 ## Threat model
 Defends against: an agent drifting out of scope, accidental credential reads, silent edits to the middle of the log.
-Does not defend against: an attacker with write access to `~/.tripwire` (can truncate the log or edit policy), shell obfuscation, actions outside hooked tools.
+Does not defend against: an attacker with write access to `~/.brakelog` (can truncate the log or edit policy), shell obfuscation, actions outside hooked tools.
 
 ## Roadmap
 1. v0.2: remote anchoring of head hashes (hosted, the first paid feature), Slack/email alerts on denies.

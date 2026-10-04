@@ -1,15 +1,15 @@
-"""Tests for tripwire.py. Standard library only: python3 -m unittest -v"""
+"""Tests for brakelog.py. Standard library only: python3 -m unittest -v"""
 import json, os, stat, subprocess, sys, tempfile, unittest
 from pathlib import Path
 
-TW = str(Path(__file__).resolve().parent / "tripwire.py")
+TW = str(Path(__file__).resolve().parent / "brakelog.py")
 
 
-class TripwireTest(unittest.TestCase):
+class BrakelogTest(unittest.TestCase):
     def setUp(self):
         self.tmp = tempfile.TemporaryDirectory()
         self.home = Path(self.tmp.name) / "tw home"  # space in path on purpose
-        self.env = {**os.environ, "TRIPWIRE_HOME": str(self.home)}
+        self.env = {**os.environ, "BRAKELOG_HOME": str(self.home)}
 
     def tearDown(self):
         self.tmp.cleanup()
@@ -24,7 +24,7 @@ class TripwireTest(unittest.TestCase):
     def assertBlocked(self, tool, inp):
         p = self.hook(tool, inp)
         self.assertEqual(p.returncode, 2, f"expected block: {tool} {inp}")
-        self.assertIn("Tripwire blocked", p.stderr)
+        self.assertIn("Brakelog blocked", p.stderr)
 
     def assertAllowed(self, tool, inp):
         p = self.hook(tool, inp)

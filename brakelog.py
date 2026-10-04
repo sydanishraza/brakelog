@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
-"""Tripwire: tamper-evident log, policy guard and kill switch for coding agents.
+"""Brakelog: tamper-evident log, policy guard and kill switch for coding agents.
 
 Runs as a Claude Code PreToolUse hook. Standard library only.
-Usage: tripwire.py {init,hook,verify,tail,pause,resume,status}
+Usage: brakelog.py {init,hook,verify,tail,pause,resume,status}
 """
 import argparse, fnmatch, hashlib, json, os, re, shlex, sys, time
 from pathlib import Path
@@ -12,7 +12,7 @@ try:
 except ImportError:  # Windows: no file locking in this MVP
     fcntl = None
 
-HOME = Path(os.environ.get("TRIPWIRE_HOME", Path.home() / ".tripwire"))
+HOME = Path(os.environ.get("BRAKELOG_HOME", Path.home() / ".brakelog"))
 LOG, POLICY, PAUSE = HOME / "log.jsonl", HOME / "policy.json", HOME / "PAUSED"
 GENESIS = "0" * 64
 
@@ -79,7 +79,7 @@ def append(rec):
 
 def evaluate(inp, pol):
     if PAUSE.exists():
-        return "deny", "session paused by operator (tripwire resume to continue)"
+        return "deny", "session paused by operator (brakelog resume to continue)"
     for k in ("file_path", "path", "notebook_path"):
         p = inp.get(k)
         if isinstance(p, str):
@@ -118,9 +118,9 @@ def cmd_hook(_):
                 "session": data.get("session_id", "?"), "tool": data.get("tool_name", "?"),
                 "input": trunc(inp), "decision": logged, "reason": why})
     except Exception as e:
-        print(f"tripwire: could not write log: {e}", file=sys.stderr)
+        print(f"brakelog: could not write log: {e}", file=sys.stderr)
     if decision == "deny" and not audit:
-        print(f"Tripwire blocked this action: {why}. Do not retry it; ask the user.", file=sys.stderr)
+        print(f"Brakelog blocked this action: {why}. Do not retry it; ask the user.", file=sys.stderr)
         return 2
     return 0
 
@@ -179,7 +179,7 @@ def cmd_init(_):
 def cmd_pause(_):
     HOME.mkdir(parents=True, exist_ok=True)
     PAUSE.write_text(time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()))
-    print("PAUSED: all tool calls will be blocked until `tripwire resume`")
+    print("PAUSED: all tool calls will be blocked until `brakelog resume`")
     return 0
 
 
@@ -196,7 +196,7 @@ def cmd_status(_):
 
 def main():
     os.umask(0o077)  # log may contain secrets: keep everything owner-only
-    ap = argparse.ArgumentParser(prog="tripwire")
+    ap = argparse.ArgumentParser(prog="brakelog")
     sub = ap.add_subparsers(dest="cmd", required=True)
     for name, fn in [("init", cmd_init), ("hook", cmd_hook), ("verify", cmd_verify),
                      ("pause", cmd_pause), ("resume", cmd_resume), ("status", cmd_status)]:

@@ -30,7 +30,8 @@ DEFAULT_POLICY = {
         r"\bsudo\b", r"git\s+push\b.*(\s--force|\s-[a-zA-Z]*f)",
     ],
     "block_unlisted_hosts": True,
-    "allow_hosts": ["github.com", "pypi.org", "files.pythonhosted.org", "registry.npmjs.org"],
+    "allow_hosts": ["localhost", "127.0.0.1", "github.com", "pypi.org", "files.pythonhosted.org",
+                    "registry.npmjs.org"],
 }
 
 

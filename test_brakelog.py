@@ -85,6 +85,14 @@ class BrakelogTest(unittest.TestCase):
         self.set_policy(block_unlisted_hosts=False)
         self.assertAllowed("WebFetch", {"url": "https://evil.example.com/x"})
 
+    def test_local_hosts_allowed_by_default(self):
+        for u in ["http://localhost:8765/", "http://127.0.0.1:3000/api", "http://app.localhost:5173/"]:
+            self.assertAllowed("WebFetch", {"url": u})
+        self.assertAllowed("Bash", {"command": "curl -s http://localhost:8080/health"})
+        # look-alikes are still blocked
+        self.assertBlocked("WebFetch", {"url": "https://localhost.evil.example.com/"})
+        self.assertBlocked("WebFetch", {"url": "http://127.0.0.1.evil.example.com/"})
+
     # --- modes and kill switch ---
     def test_audit_mode_logs_without_blocking(self):
         self.set_policy(mode="audit")

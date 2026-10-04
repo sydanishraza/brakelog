@@ -8,7 +8,7 @@ A tamper-evident log, policy guard and kill switch for coding agents. Works toda
 
 ## What it does
 - **Records** every tool call the agent makes (command, file path, URL) to `~/.brakelog/log.jsonl`. Each record includes the hash of the previous one, so editing or deleting an entry in the middle is detectable.
-- **Blocks** calls that break your policy: credential files (`~/.aws`, `~/.ssh`, `.env`), dangerous commands (`curl | sh`, `rm -rf /`, `sudo`, force-push), and network hosts not on your allowlist. File rules follow symlinks and ignore case, so a link to `~/.aws/credentials` or a path like `~/.AWS/credentials` is still blocked.
+- **Blocks** calls that break your policy: credential files (`~/.aws`, `~/.ssh`, `.env`), dangerous commands (`curl | sh`, `rm -rf /`, `sudo`, force-push), and network hosts not on your allowlist (`localhost` and `127.0.0.1` are allowed by default, so local dev servers work). File rules follow symlinks and ignore case, so a link to `~/.aws/credentials` or a path like `~/.AWS/credentials` is still blocked.
 - **Kill switch:** `brakelog pause` blocks every tool call immediately, mid-run, even in audit mode. `brakelog resume` lifts it. Run `resume` from your own terminal: while paused, the agent's commands are blocked too.
 
 ## Quick start

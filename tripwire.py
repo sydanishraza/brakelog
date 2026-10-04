@@ -84,12 +84,14 @@ def evaluate(inp, pol):
         p = inp.get(k)
         if isinstance(p, str):
             ap = os.path.abspath(os.path.expanduser(p))
-            for g in pol["deny_paths"]:
-                if fnmatch.fnmatch(ap, g):
-                    return "deny", f"path {ap} matches deny rule {g}"
+            # check the real target too (symlinks), case-insensitively (macOS/Windows filesystems)
+            for cand in {ap, os.path.realpath(ap)}:
+                for g in pol["deny_paths"]:
+                    if fnmatch.fnmatchcase(cand.lower(), g.lower()):
+                        return "deny", f"path {cand} matches deny rule {g}"
     cmd = inp.get("command") if isinstance(inp.get("command"), str) else ""
     for pat in pol["deny_command_patterns"]:
-        if re.search(pat, cmd):
+        if re.search(pat, cmd, re.IGNORECASE):
             return "deny", f"command matches deny rule {pat}"
     if pol["block_unlisted_hosts"]:
         text = cmd + " " + (inp.get("url") if isinstance(inp.get("url"), str) else "")

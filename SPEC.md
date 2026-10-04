@@ -20,7 +20,7 @@ CLI commands read the same log and flag files. No daemon, no network.
 `hash = sha256(prev + canonical_json(record_without_hash))`; first `prev` is 64 zeros.
 
 ## Policy
-`deny_paths` (globs on absolute paths for file tools), `deny_command_patterns` (regex on Bash commands), `allow_hosts` + `block_unlisted_hosts` (hosts found in commands and URL inputs), `mode` (enforce|audit).
+`deny_paths` (case-insensitive globs on absolute and symlink-resolved paths for file tools), `deny_command_patterns` (case-insensitive regex on Bash commands), `allow_hosts` + `block_unlisted_hosts` (hosts found in commands and URL inputs), `mode` (enforce|audit).
 
 ## Threat model
 Defends against: an agent drifting out of scope, accidental credential reads, silent edits to the middle of the log.

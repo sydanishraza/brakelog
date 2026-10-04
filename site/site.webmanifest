@@ -1,0 +1,8 @@
+{
+  "name": "Brakelog",
+  "short_name": "Brakelog",
+  "icons": [{ "src": "/icon-512.png", "sizes": "512x512", "type": "image/png" }],
+  "theme_color": "#16151a",
+  "background_color": "#16151a",
+  "display": "standalone"
+}

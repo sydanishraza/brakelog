@@ -93,6 +93,39 @@ class BrakelogTest(unittest.TestCase):
         self.assertBlocked("WebFetch", {"url": "https://localhost.evil.example.com/"})
         self.assertBlocked("WebFetch", {"url": "http://127.0.0.1.evil.example.com/"})
 
+    # --- self-protection (locked, enforced even in audit mode) ---
+    def test_agent_cannot_touch_brakelog_data(self):
+        for tool in ("Edit", "Write", "Read"):
+            self.assertBlocked(tool, {"file_path": str(self.home / "policy.json")})
+            self.assertBlocked(tool, {"file_path": os.path.expanduser("~/.brakelog/log.jsonl")})
+        for c in ["rm ~/.brakelog/PAUSED", "echo '{}' > ~/.brakelog/policy.json",
+                  "cat ~/.BRAKELOG/log.jsonl", f"rm '{self.home}/PAUSED'"]:
+            self.assertBlocked("Bash", {"command": c})
+
+    def test_agent_cannot_edit_hook_settings(self):
+        for p in [os.path.expanduser("~/.claude/settings.json"), "/repo/.claude/settings.local.json"]:
+            self.assertBlocked("Edit", {"file_path": p})
+            self.assertBlocked("Write", {"file_path": p})
+            self.assertAllowed("Read", {"file_path": p})
+        self.assertBlocked("Bash", {"command": "sed -i '' 's/hook//' ~/.claude/settings.json"})
+
+    def test_agent_cannot_change_hook_script(self):
+        self.assertBlocked("Edit", {"file_path": TW})
+        self.assertAllowed("Read", {"file_path": TW})
+        for c in ["sed -i '' 's/deny/allow/' brakelog.py", f"cp /tmp/x.py {TW}",
+                  "python3 brakelog.py resume", "git checkout brakelog.py"]:
+            self.assertBlocked("Bash", {"command": c})
+        for c in ["python3 brakelog.py tail -n 5", f"python3 '{TW}' verify", "python3 brakelog.py pause",
+                  "python3 brakelog.py status", "git add brakelog.py test_brakelog.py",
+                  "python3 -m unittest test_brakelog"]:
+            self.assertAllowed("Bash", {"command": c})
+
+    def test_self_protection_enforced_in_audit_mode(self):
+        self.set_policy(mode="audit")
+        self.assertBlocked("Bash", {"command": "rm ~/.brakelog/PAUSED"})
+        self.assertBlocked("Edit", {"file_path": os.path.expanduser("~/.claude/settings.json")})
+        self.assertAllowed("Bash", {"command": "sudo ls"})  # ordinary rules still audit-only
+
     # --- modes and kill switch ---
     def test_audit_mode_logs_without_blocking(self):
         self.set_policy(mode="audit")

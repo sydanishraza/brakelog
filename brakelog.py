@@ -78,6 +78,42 @@ def append(rec):
             fcntl.flock(f, fcntl.LOCK_UN)
 
 
+SELF = os.path.realpath(os.path.abspath(__file__))
+READ_TOOLS = {"Read", "Grep", "Glob", "LS", "NotebookRead"}
+# Locked rules, not configurable: the agent may not touch Brakelog's data, edit the hook script,
+# or edit Claude Code settings (where the hook is configured, or hooks can be disabled).
+PROTECTED_ALWAYS = ["*/.brakelog", "*/.brakelog/*"]
+PROTECTED_WRITES = ["*/.claude/settings.json", "*/.claude/settings.local.json"]
+SAFE_SELF_CMD = re.compile(
+    r"(?<![\w-])brakelog\.py['\"]?\s+(tail|verify|status|pause)\b"
+    r"|\bgit\s+(add|diff|log|show|status|blame)\b[^;&|\n]*?(?<![\w-])brakelog\.py", re.IGNORECASE)
+
+
+def self_protect(tool, inp):
+    homes = {os.path.abspath(str(HOME)).lower(), os.path.realpath(str(HOME)).lower()}
+    for k in ("file_path", "path", "notebook_path"):
+        p = inp.get(k)
+        if not isinstance(p, str):
+            continue
+        ap = os.path.abspath(os.path.expanduser(p))
+        for cand in {ap, os.path.realpath(ap)}:
+            c = cand.lower()
+            if (any(c == h or c.startswith(h + os.sep) for h in homes)
+                    or any(fnmatch.fnmatchcase(c, g) for g in PROTECTED_ALWAYS)):
+                return "deny", f"path {cand} is Brakelog's own data (protected)"
+            if tool not in READ_TOOLS and (c == SELF.lower()
+                    or any(fnmatch.fnmatchcase(c, g) for g in PROTECTED_WRITES)):
+                return "deny", f"path {cand} is protected: the hook script or hook settings"
+    cmd = inp.get("command") if isinstance(inp.get("command"), str) else ""
+    low = cmd.lower()
+    if ".brakelog" in low or any(h in low for h in homes) or ".claude/settings" in low:
+        return "deny", "command touches Brakelog's data or Claude Code settings (protected)"
+    rest = SAFE_SELF_CMD.sub("", cmd)
+    if re.search(r"(?<![\w-])brakelog\.py", rest, re.IGNORECASE) or SELF.lower() in rest.lower():
+        return "deny", "command touches the Brakelog hook script (only tail, verify, status, pause are allowed)"
+    return "allow", ""
+
+
 def evaluate(inp, pol):
     if PAUSE.exists():
         return "deny", "session paused by operator (brakelog resume to continue)"
@@ -110,9 +146,12 @@ def cmd_hook(_):
         return 0  # fail open on malformed input; never break the agent
     pol = load_policy()
     inp = data.get("tool_input") or {}
-    decision, why = evaluate(inp, pol)
-    # the kill switch always enforces, even in audit mode
-    audit = pol.get("mode") == "audit" and not PAUSE.exists()
+    decision, why = self_protect(data.get("tool_name", ""), inp)
+    locked = decision == "deny"
+    if not locked:
+        decision, why = evaluate(inp, pol)
+    # the kill switch and self-protection always enforce, even in audit mode
+    audit = pol.get("mode") == "audit" and not PAUSE.exists() and not locked
     logged = "would_deny" if decision == "deny" and audit else decision
     try:
         append({"ts": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),

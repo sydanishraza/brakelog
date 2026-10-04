@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Brakelog: flight recorder and kill switch for coding agents</title>
-<meta name="description" content="Open-source Claude Code hook that logs every tool call to a tamper-evident log, blocks credential reads and risky commands, and adds a pause button. One Python file, no dependencies.">
+<meta name="description" content="Open-source Claude Code hook that logs every tool call to a hash-chained log it protects from the agent, blocks credential reads and risky commands, and adds a pause button. One Python file, no dependencies.">
 <meta property="og:title" content="Brakelog: flight recorder and kill switch for coding agents">
 <meta property="og:description" content="Know what your coding agent did. Stop it mid-run. Open source, one Python file.">
 <meta property="og:type" content="website">
@@ -81,7 +81,7 @@ footer{padding:32px 0 48px;color:var(--muted);font-size:14px;border-top:1px soli
     <div class="hero">
       <div class="eyebrow">Open source · Claude Code hook</div>
       <h1>Know what your coding agent did. Stop it mid-run.</h1>
-      <p class="lede">Brakelog records every tool call to a tamper-evident log, blocks credential reads and risky commands, and gives you a pause button that works while the agent is running. One Python file, no dependencies.</p>
+      <p class="lede">Brakelog records every tool call to a log the agent can't touch, blocks credential reads and risky commands, and gives you a pause button that works while the agent is running. One Python file, no dependencies.</p>
       <div class="cta">
         <a class="btn primary" href="https://docs.google.com/forms/d/e/1FAIpQLSep5V2V3w56EfKKrhICh3hnQUZYMSOwD5GVqfGMy59JSxKZUg/viewform">Get updates</a>
         <a class="btn" href="https://github.com/sydanishraza/brakelog">View on GitHub</a>
@@ -101,7 +101,7 @@ footer{padding:32px 0 48px;color:var(--muted);font-size:14px;border-top:1px soli
     <section id="what">
       <h2>Three things, nothing else</h2>
       <div class="grid">
-        <div class="card"><h3>Records</h3><p>Every tool call the agent makes goes into a JSONL log. Each record carries the hash of the one before it, so an edited or deleted entry shows up in <code>verify</code>.</p></div>
+        <div class="card"><h3>Records</h3><p>Every tool call the agent makes goes into a JSONL log. Each record carries the hash of the one before it, and the agent can't touch the log, the policy or the hook settings, so it can't cover its tracks or switch Brakelog off.</p></div>
         <div class="card"><h3>Blocks</h3><p>Credential files (<code>~/.aws</code>, <code>~/.ssh</code>, <code>.env</code>), <code>curl | sh</code>, <code>rm -rf /</code>, <code>sudo</code>, force-push, and network hosts you haven't allowed. Symlinks and case tricks are caught too.</p></div>
         <div class="card"><h3>Stops</h3><p><code>brakelog pause</code> blocks every tool call immediately, even mid-run. <code>brakelog resume</code>, from your own terminal, lets it continue.</p></div>
       </div>
@@ -125,7 +125,7 @@ python3 brakelog/brakelog.py init   # prints the hook config for .claude/setting
       <h2>What it isn't</h2>
       <ul class="limits">
         <li><strong>Not a sandbox.</strong> Rules match the text of commands, so an obfuscated command can slip past, and a harmless command that only mentions a pattern can be blocked. Treat it as a guardrail and flight recorder.</li>
-        <li><strong>Deleting the newest entries isn't detectable from the log alone.</strong> Save the head hash from <code>verify</code> somewhere the agent can't write.</li>
+        <li><strong>The hash chain isn't proof on its own.</strong> It has no secret key, so a person or program outside the agent with access to the log folder could rewrite it and it would still verify. Save the head hash from <code>verify</code> off the machine to make earlier entries provable. Signed records are on the roadmap.</li>
         <li><strong>Logs can contain secrets</strong> that appear in commands. Brakelog keeps its folder owner-only.</li>
         <li><strong>Claude Code only, for now.</strong> Other agents are on the roadmap. Tell us which one you need.</li>
       </ul>

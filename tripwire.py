@@ -4,7 +4,7 @@
 Runs as a Claude Code PreToolUse hook. Standard library only.
 Usage: tripwire.py {init,hook,verify,tail,pause,resume,status}
 """
-import argparse, fnmatch, hashlib, json, os, re, sys, time
+import argparse, fnmatch, hashlib, json, os, re, shlex, sys, time
 from pathlib import Path
 
 try:
@@ -23,10 +23,11 @@ DEFAULT_POLICY = {
         "*/.npmrc", "*/.netrc", "*/.git-credentials", "*/.config/gcloud/*",
     ],
     "deny_command_patterns": [
-        r"\.aws/credentials", r"\.ssh/", r"\.git-credentials", r"\.netrc",
-        r"(^|[\s/'\"])\.env(\.[\w-]+)?($|[\s'\"])",
-        r"rm\s+-rf\s+(/|~)", r"curl[^|]*\|\s*(ba)?sh", r"wget[^|]*\|\s*(ba)?sh",
-        r"\bsudo\b", r"git\s+push\s+.*--force",
+        r"\.aws/", r"\.ssh/", r"\.git-credentials", r"\.netrc", r"\.npmrc",
+        r"\.config/gcloud", r"(^|[\s/'\"])\.env(\.[\w-]+)?($|[\s'\"])",
+        r"\brm\s+(-\S+\s+)*(/|~|\$HOME)/?\*?($|[\s;&|])",
+        r"curl[^|]*\|\s*(ba)?sh", r"wget[^|]*\|\s*(ba)?sh",
+        r"\bsudo\b", r"git\s+push\b.*(\s--force|\s-[a-zA-Z]*f)",
     ],
     "block_unlisted_hosts": True,
     "allow_hosts": ["github.com", "pypi.org", "files.pythonhosted.org", "registry.npmjs.org"],
@@ -107,7 +108,8 @@ def cmd_hook(_):
     pol = load_policy()
     inp = data.get("tool_input") or {}
     decision, why = evaluate(inp, pol)
-    audit = pol.get("mode") == "audit"
+    # the kill switch always enforces, even in audit mode
+    audit = pol.get("mode") == "audit" and not PAUSE.exists()
     logged = "would_deny" if decision == "deny" and audit else decision
     try:
         append({"ts": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
@@ -129,10 +131,14 @@ def cmd_verify(_):
     for i, line in enumerate(open(LOG), 1):
         if not line.strip():
             continue
-        rec = json.loads(line)
-        h = rec.pop("hash", None)
-        if rec.get("prev") != prev or digest(prev, rec) != h:
-            print(f"TAMPERED: chain breaks at line {i} (seq {rec.get('seq')})")
+        try:
+            rec = json.loads(line)
+            h = rec.pop("hash", None)
+            ok = rec.get("prev") == prev and digest(prev, rec) == h
+        except (ValueError, AttributeError):
+            rec, ok = {}, False
+        if not ok:
+            print(f"TAMPERED: chain breaks at line {i} (seq {rec.get('seq', '?')})")
             return 1
         prev, n = h, n + 1
     print(f"OK: {n} records. Head hash (save this somewhere safe): {prev}")
@@ -143,9 +149,13 @@ def cmd_tail(a):
     if not LOG.exists():
         return 0
     for line in open(LOG).read().splitlines()[-a.n:]:
-        r = json.loads(line)
+        try:
+            r = json.loads(line)
+        except ValueError:
+            print("  ??? unreadable line (run verify)")
+            continue
         detail = r["input"].get("command") or r["input"].get("file_path") or r["input"].get("url") or ""
-        print(f'{r["seq"]:>5} {r["ts"]} {r["decision"]:<10} {r["tool"]:<10} {str(detail)[:70]} {r["reason"]}')
+        print(f'{r["seq"]:>5} {r["ts"]} {r["decision"]:<10} {r["tool"]:<10} {" ".join(str(detail).split())[:70]} {r["reason"]}')
     return 0
 
 
@@ -153,9 +163,12 @@ def cmd_init(_):
     HOME.mkdir(parents=True, exist_ok=True)
     if not POLICY.exists():
         POLICY.write_text(json.dumps(DEFAULT_POLICY, indent=2))
+    for p in (HOME, LOG, POLICY):  # tighten installs made by older versions
+        if p.exists():
+            p.chmod(0o700 if p.is_dir() else 0o600)
     me = os.path.abspath(__file__)
     snippet = {"hooks": {"PreToolUse": [{"matcher": "*", "hooks": [
-        {"type": "command", "command": f"{sys.executable} {me} hook"}]}]}}
+        {"type": "command", "command": f"{shlex.quote(sys.executable)} {shlex.quote(me)} hook"}]}]}}
     print(f"Policy: {POLICY}\nAdd this to .claude/settings.json (project) or ~/.claude/settings.json:\n")
     print(json.dumps(snippet, indent=2))
     return 0
@@ -180,6 +193,7 @@ def cmd_status(_):
 
 
 def main():
+    os.umask(0o077)  # log may contain secrets: keep everything owner-only
     ap = argparse.ArgumentParser(prog="tripwire")
     sub = ap.add_subparsers(dest="cmd", required=True)
     for name, fn in [("init", cmd_init), ("hook", cmd_hook), ("verify", cmd_verify),
